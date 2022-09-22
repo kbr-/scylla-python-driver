@@ -1373,6 +1373,15 @@ class Cluster(object):
         }
 
         self.executor = self._create_thread_pool_executor(max_workers=executor_threads)
+        self.executor.old_submit = self.executor.submit
+        def new_submit(self, fn, *args, **kwargs):
+            def new_fn(*args, **kwargs):
+                log.debug(f'---- function {fn.__name__} started inside executor')
+                res = fn(*args, **kwargs)
+                log.debug(f'---- function {fn.__name__} finished inside executor')
+                return res
+            return self.old_submit(new_fn, *args, **kwargs)
+        self.executor.submit = new_submit.__get__(self.executor, ThreadPoolExecutor)
         self.scheduler = _Scheduler(self.executor)
 
         self._lock = RLock()
@@ -1975,6 +1984,7 @@ class Cluster(object):
         """
         Intended for internal use only.
         """
+        log.info("Host %s on_down running in executor", host)
         if self.is_shutdown:
             return
 
