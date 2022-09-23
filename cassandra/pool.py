@@ -1189,6 +1189,7 @@ class HostConnectionPool(object):
             self._session.submit(self._retrying_replace)
 
     def shutdown(self):
+        time.sleep(0.3)
         with self._lock:
             if self.is_shutdown:
                 return
